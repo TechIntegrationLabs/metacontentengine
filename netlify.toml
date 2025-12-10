@@ -1,0 +1,111 @@
+# Netlify Configuration for Meta Content Engine
+# Multi-tenant Nx monorepo deployment
+
+[build]
+  # Base directory for the monorepo
+  base = "content-engine/"
+
+  # Build command - builds the default client app
+  # Override per-branch or use NETLIFY_BUILD_COMMAND env var for other clients
+  command = "npx nx build geteducated --configuration=production"
+
+  # Output directory (relative to base)
+  publish = "dist/apps/geteducated"
+
+  # Node version
+  [build.environment]
+    NODE_VERSION = "20"
+    NPM_VERSION = "10"
+
+# Production context
+[context.production]
+  command = "npx nx build geteducated --configuration=production"
+
+  [context.production.environment]
+    VITE_ENVIRONMENT = "production"
+
+# Deploy Preview context (PR previews)
+[context.deploy-preview]
+  command = "npx nx build geteducated --configuration=production"
+
+  [context.deploy-preview.environment]
+    VITE_ENVIRONMENT = "preview"
+
+# Branch deploy context
+[context.branch-deploy]
+  command = "npx nx build geteducated --configuration=production"
+
+  [context.branch-deploy.environment]
+    VITE_ENVIRONMENT = "staging"
+
+# Staging branch specific
+[context.staging]
+  command = "npx nx build geteducated --configuration=production"
+
+  [context.staging.environment]
+    VITE_ENVIRONMENT = "staging"
+
+# SPA Routing - redirect all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets aggressively
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache fonts
+[[headers]]
+  for = "*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Don't cache HTML (for SPA updates)
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Functions configuration (if using Netlify Functions alongside Supabase)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Build plugins
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+# ============================================
+# MULTI-CLIENT DEPLOYMENT NOTES
+# ============================================
+# To deploy a different client app, either:
+#
+# 1. Create a separate Netlify site with env overrides:
+#    NETLIFY_BUILD_COMMAND = "npx nx build <client-name> --configuration=production"
+#    Set publish directory in Netlify UI to: dist/apps/<client-name>
+#
+# 2. Or use branch-based deployments:
+#    - main branch -> geteducated (default)
+#    - client-acme branch -> acme client
+#
+#    Add context block:
+#    [context.client-acme]
+#      command = "npx nx build acme --configuration=production"
+#      publish = "dist/apps/acme"
+#
+# 3. Or use Netlify's monorepo support with separate netlify.toml
+#    per app in apps/<client>/netlify.toml
+# ============================================

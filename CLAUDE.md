@@ -165,6 +165,60 @@ npx nx graph
 npx nx affected -t build
 ```
 
+## Deployment (Netlify)
+
+This project is configured for deployment on **Netlify** via `netlify.toml`.
+
+### Quick Start
+1. Connect repo to Netlify
+2. Set base directory: `content-engine`
+3. Add environment variables in Netlify dashboard (see below)
+4. Deploy
+
+### Environment Variables for Netlify
+Add these in **Netlify Dashboard > Site Settings > Environment Variables**:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | Yes | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
+| `VITE_TENANT_ID` | Yes | Tenant UUID for this deployment |
+| `VITE_APP_NAME` | No | App display name (default: Perdia) |
+| `VITE_ENVIRONMENT` | Auto | Set automatically per context |
+
+### Multi-Client Deployments
+Each client app can be deployed as a separate Netlify site:
+
+**Option 1: Separate Sites (Recommended)**
+- Create a new Netlify site per client
+- Override build command: `npx nx build <client-name> --configuration=production`
+- Set publish directory: `dist/apps/<client-name>`
+
+**Option 2: Branch-Based**
+- Use branches like `client-acme`, `client-techblog`
+- Add context blocks in `netlify.toml` for each
+
+### Deploy Contexts
+| Context | Branch | Environment |
+|---------|--------|-------------|
+| Production | `main` | `production` |
+| Staging | `staging` | `staging` |
+| Deploy Preview | PR branches | `preview` |
+
+### Build Output
+```
+dist/apps/geteducated/
++-- index.html
++-- assets/
+    +-- *.js (hashed)
+    +-- *.css (hashed)
+```
+
+### Troubleshooting
+- **Build fails**: Check Node version is 20+
+- **Routing 404s**: SPA redirects configured in `netlify.toml`
+- **Env vars missing**: Ensure `VITE_` prefix for client-side vars
+
 ## Environment Variables
 
 ### Required
