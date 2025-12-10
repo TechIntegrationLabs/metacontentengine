@@ -1,96 +1,260 @@
-# ContentEngine
+# Meta Content Engine (Perdia)
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+AI-powered multi-tenant content generation platform built with Nx monorepo architecture.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Overview
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+Meta Content Engine is a production-ready platform for generating, managing, and publishing high-quality content at scale. It uses multiple AI providers with contributor personas for authentic voice matching.
 
-## Run tasks
+## Tech Stack
 
-To run tasks with Nx use:
+- **Framework**: React 19 + TypeScript + Vite 7
+- **Monorepo**: Nx 22
+- **Styling**: TailwindCSS (Kinetic Modernism design system)
+- **Database**: Supabase with Row-Level Security (RLS)
+- **AI Providers**: Grok, Claude, StealthGPT
+- **State**: TanStack Query
+- **Forms**: React Hook Form + Zod
+- **Rich Text**: TipTap
+- **Charts**: Recharts
+- **Animations**: Framer Motion
 
-```sh
-npx nx <target> <project-name>
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm or pnpm
+- Supabase account (or local Supabase CLI)
+
+### Setup
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd content-engine
+
+# Install dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env.local
+
+# Edit .env.local with your Supabase credentials
+# (See Environment Variables section below)
+
+# Start development server
+npx nx serve geteducated
 ```
 
-For example:
+The app will be available at `http://localhost:4200`
 
-```sh
-npx nx build myproject
+## Project Structure
+
+```
+content-engine/
++-- apps/
+|   +-- geteducated/         # GetEducated client app
++-- libs/
+|   +-- shared/
+|   |   +-- config/          # Environment configuration
+|   |   +-- hooks/           # Shared React hooks
+|   |   +-- types/           # TypeScript type definitions
+|   |   +-- ui/              # Reusable UI components
+|   +-- core/
+|       +-- generation/      # AI content generation
+|       +-- publishing/      # WordPress publishing
+|       +-- quality/         # Content quality analysis
++-- supabase/
+    +-- migrations/          # Database migrations with RLS
+    +-- functions/           # Supabase Edge Functions
+    +-- seed/                # Seed data
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## Environment Variables
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Shared Secrets Architecture
 
-## Add new projects
+This monorepo uses a **cascading environment variable system**:
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+1. **Root `.env.example`** - Template with documentation (committed to git)
+2. **Root `.env.local`** - Shared secrets for ALL apps (gitignored)
+3. **App `.env.local`** - Per-app overrides (gitignored)
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+**Environment loading order**:
+```
+Root .env -> Root .env.local -> Root .env.[mode] -> Root .env.[mode].local -> App .env.local
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+Later values override earlier ones, so app-specific settings take precedence.
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+### Setup
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+1. Copy the template:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. Add your credentials to `.env.local`:
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+3. (Optional) Create app-specific overrides:
+   ```bash
+   # apps/geteducated/.env.local
+   VITE_APP_NAME=GetEducated
+   VITE_TENANT_ID=your-tenant-uuid
+   ```
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
+
+### Optional Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_TENANT_ID` | - | Default tenant ID |
+| `VITE_APP_NAME` | 'Perdia' | Application name |
+| `VITE_ENVIRONMENT` | 'development' | Environment mode |
+| `VITE_DEBUG` | 'false' | Enable debug logging |
+
+See `.env.example` for the complete list with documentation.
+
+## Development
+
+### Commands
+
+```bash
+# Start development server
+npx nx serve geteducated
+
+# Build for production
+npx nx build geteducated
+
+# Run tests
+npx nx test geteducated
+
+# Lint
+npx nx lint geteducated
+
+# Run affected projects only
+npx nx affected -t build
+
+# View project graph
+npx nx graph
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+### Adding a New App
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Generate a new React app
+npx nx g @nx/react:app my-client
 
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+# The app will automatically use root .env.local
+# Create app-specific overrides in apps/my-client/.env.local
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+### Adding a New Library
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Generate a shared library
+npx nx g @nx/react:lib my-lib --directory=libs/shared
 
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+# Generate a core library
+npx nx g @nx/js:lib my-core-lib --directory=libs/core
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Multi-Tenancy
 
-## Install Nx Console
+The platform supports multiple tenants (organizations) with complete data isolation:
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+- **Row-Level Security (RLS)**: All tables enforce tenant isolation at the database level
+- **JWT Claims**: `auth.tenant_id()` extracts tenant from user's JWT
+- **API Key Encryption**: Per-tenant API keys stored with pgcrypto encryption
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Tenant Setup
 
-## Useful links
+1. Create tenant via Supabase dashboard or API
+2. Assign users to tenant via `app_metadata.tenant_id`
+3. Configure API keys in Settings UI
 
-Learn more:
+## AI Providers
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Supported Providers
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+| Provider | Purpose | Documentation |
+|----------|---------|---------------|
+| **Grok (xAI)** | Primary drafting | [x.ai/api](https://x.ai/api) |
+| **Claude (Anthropic)** | Quality analysis | [console.anthropic.com](https://console.anthropic.com) |
+| **StealthGPT** | Humanization | [stealthgpt.ai](https://stealthgpt.ai) |
+
+### Key Management
+
+API keys are managed at two levels:
+
+1. **Root `.env.local`** - Platform fallback keys (for development)
+2. **Supabase `tenant_api_keys`** - Per-tenant encrypted keys (for production)
+
+In production, tenants configure their own keys via the Settings UI.
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Connect repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Configure build command: `npx nx build geteducated`
+4. Set output directory: `dist/apps/geteducated`
+
+### Environment-Specific Variables
+
+| Environment | Recommendations |
+|-------------|-----------------|
+| **Development** | Use local Supabase, mock AI enabled |
+| **Staging** | Real Supabase, test API keys |
+| **Production** | Real Supabase, production API keys, `VITE_ENVIRONMENT=production` |
+
+## Architecture Decisions
+
+### Why Nx Monorepo?
+
+- **Code sharing**: Reusable libraries across multiple client apps
+- **Build caching**: Faster CI/CD with Nx Cloud
+- **Consistency**: Shared tooling and configuration
+- **Scalability**: Easy to add new apps for different clients
+
+### Why Supabase?
+
+- **Postgres**: Full SQL capabilities with RLS
+- **Auth**: Built-in authentication with JWT
+- **Edge Functions**: Serverless API for AI operations
+- **Real-time**: Live updates for collaborative features
+
+### Why Multiple AI Providers?
+
+- **Flexibility**: Different providers excel at different tasks
+- **Reliability**: Fallback options if one provider is unavailable
+- **Cost optimization**: Route tasks to cost-effective providers
+- **Tenant choice**: Let tenants bring their own API keys
+
+## Contributing
+
+1. Create a feature branch
+2. Make changes
+3. Run tests: `npx nx affected -t test`
+4. Run lint: `npx nx affected -t lint`
+5. Submit pull request
+
+## License
+
+MIT
+
+---
+
+Built with Nx. [Learn more about Nx](https://nx.dev)

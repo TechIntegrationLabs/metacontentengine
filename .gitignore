@@ -40,3 +40,44 @@ Thumbs.db
 
 .nx/cache
 .nx/workspace-data
+
+vite.config.*.timestamp*
+
+# ============================================
+# ENVIRONMENT FILES - CRITICAL SECURITY
+# ============================================
+
+# Local environment files (contain actual secrets - NEVER commit)
+.env.local
+.env.*.local
+
+# App-specific local env files
+apps/**/.env.local
+apps/**/.env.*.local
+
+# Legacy env files that might contain secrets
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ============================================
+# SUPABASE LOCAL
+# ============================================
+
+# Supabase local development (auto-generated)
+supabase/.branches
+supabase/.temp
+
+# ============================================
+# SECRETS & CREDENTIALS
+# ============================================
+
+# API keys and credentials
+*.pem
+*.key
+credentials.json
+secrets.json
+service-account*.json
+
+# WordPress credentials
+wp-config-local.php
