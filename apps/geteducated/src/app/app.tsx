@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, PenTool, FileText, Users, Settings as SettingsIcon, BarChart3, Flame, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AuthProvider, useAuth, TenantProvider, useTenant } from '@content-engine/hooks';
@@ -6,23 +7,29 @@ import Dashboard from './pages/Dashboard';
 import ContentForge from './pages/ContentForge';
 import MagicSetup, { BrandProfile } from './pages/MagicSetup';
 import Articles from './pages/Articles';
+import ArticleEditor from './pages/ArticleEditor';
 import Contributors from './pages/Contributors';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
 import { Login, Register, ForgotPassword, ResetPassword } from './pages/auth';
 
-type View = 'dashboard' | 'forge' | 'articles' | 'contributors' | 'analytics' | 'settings';
 type AuthView = 'login' | 'register' | 'forgot-password' | 'reset-password';
 
 const STORAGE_KEY = 'perdia_brand_profile';
 
-const navItems = [
-  { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'forge' as View, label: 'Content Forge', icon: PenTool },
-  { id: 'articles' as View, label: 'Articles', icon: FileText },
-  { id: 'contributors' as View, label: 'Contributors', icon: Users },
-  { id: 'analytics' as View, label: 'Analytics', icon: BarChart3 },
-  { id: 'settings' as View, label: 'Settings', icon: SettingsIcon },
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const navItems: NavItem[] = [
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/forge', label: 'Content Forge', icon: PenTool },
+  { path: '/articles', label: 'Articles', icon: FileText },
+  { path: '/contributors', label: 'Contributors', icon: Users },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 // Loading spinner component
@@ -103,7 +110,8 @@ function AuthWrapper() {
 function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const { tenant, isLoading: tenantLoading } = useTenant();
   const { user } = useAuth();
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -153,6 +161,14 @@ function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const initials = displayName.slice(0, 2).toUpperCase();
   const role = user?.app_metadata?.role || 'viewer';
 
+  // Check if current route is active
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <div className="min-h-screen bg-void-950 text-white flex overflow-hidden font-sans">
       <aside
@@ -178,19 +194,19 @@ function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
         <nav className="flex-1 px-4 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const active = isActive(item.path);
             return (
               <button
-                key={item.id}
-                onClick={() => setCurrentView(item.id)}
+                key={item.path}
+                onClick={() => navigate(item.path)}
                 className={[
                   'w-full flex items-center space-x-3 px-3 py-3 rounded-xl transition-all duration-300 group relative',
-                  isActive
+                  active
                     ? 'bg-gradient-to-r from-indigo-500/10 to-transparent text-indigo-400 border-l-2 border-indigo-500'
                     : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
                 ].join(' ')}
               >
-                <Icon className={['w-5 h-5', isActive ? 'text-indigo-400' : ''].join(' ')} />
+                <Icon className={['w-5 h-5', active ? 'text-indigo-400' : ''].join(' ')} />
                 {!isSidebarCollapsed && (
                   <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
                 )}
@@ -231,12 +247,17 @@ function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
       <main className={['flex-1 overflow-y-auto relative scroll-smooth transition-all duration-500', isSidebarCollapsed ? 'ml-20' : 'ml-64'].join(' ')}>
         <div className="sticky top-0 h-8 bg-gradient-to-b from-void-950 to-transparent z-40 pointer-events-none" />
         <div className="p-8 max-w-[1920px] mx-auto min-h-screen">
-          {currentView === 'dashboard' && <Dashboard />}
-          {currentView === 'forge' && <ContentForge />}
-          {currentView === 'articles' && <Articles />}
-          {currentView === 'contributors' && <Contributors />}
-          {currentView === 'analytics' && <Analytics />}
-          {currentView === 'settings' && <Settings />}
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/forge" element={<ContentForge />} />
+            <Route path="/articles" element={<Articles />} />
+            <Route path="/articles/new" element={<ArticleEditor />} />
+            <Route path="/articles/:id" element={<ArticleEditor />} />
+            <Route path="/contributors" element={<Contributors />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
         <div className="fixed top-0 right-0 -z-10 w-[800px] h-[800px] bg-indigo-900/10 blur-[150px] rounded-full pointer-events-none" />
         <div className="fixed bottom-0 left-0 -z-10 w-[600px] h-[600px] bg-forge-accent/5 blur-[150px] rounded-full pointer-events-none" />
@@ -248,11 +269,13 @@ function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
 // Root app with providers
 export function App() {
   return (
-    <AuthProvider supabase={supabase}>
-      <TenantProvider supabase={supabase}>
-        <AuthWrapper />
-      </TenantProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider supabase={supabase}>
+        <TenantProvider supabase={supabase}>
+          <AuthWrapper />
+        </TenantProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

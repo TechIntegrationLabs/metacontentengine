@@ -20,3 +20,5 @@ export type {
   CreateContributorInput,
   UpdateContributorInput,
 } from './useContributors';
+export { useApiKeys } from './useApiKeys';
+export type { ApiProvider, ApiKeyConfig, ApiKeyStatus } from './useApiKeys';

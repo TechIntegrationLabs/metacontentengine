@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -17,7 +18,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useArticles, Article, ArticleStatus } from '@content-engine/hooks';
-import ArticleEditor from './ArticleEditor';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   idea: {
@@ -77,10 +77,9 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
 };
 
 const Articles: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const {
@@ -123,59 +122,6 @@ const Articles: React.FC = () => {
     }
   };
 
-  const handleSave = async (articleData: {
-    title: string;
-    content: string;
-    status: string;
-    contributor?: string;
-  }) => {
-    try {
-      if (selectedArticle) {
-        await updateArticle({
-          id: selectedArticle.id,
-          title: articleData.title,
-          content: articleData.content,
-          status: articleData.status as ArticleStatus,
-        });
-      } else {
-        await createArticle({
-          title: articleData.title,
-          content: articleData.content,
-          status: articleData.status as ArticleStatus,
-        });
-      }
-      setIsEditing(false);
-      setSelectedArticle(null);
-    } catch (err) {
-      console.error('Failed to save article:', err);
-      alert('Failed to save article');
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <ArticleEditor
-        article={selectedArticle ? {
-          id: selectedArticle.id,
-          title: selectedArticle.title,
-          content: selectedArticle.content || '',
-          status: selectedArticle.status,
-          contributor: selectedArticle.contributor?.display_name || selectedArticle.contributor?.name || '',
-          category: '',
-          wordCount: selectedArticle.word_count || 0,
-          qualityScore: selectedArticle.quality_score || 0,
-          createdAt: new Date(selectedArticle.created_at),
-          updatedAt: new Date(selectedArticle.updated_at)
-        } : undefined}
-        onBack={() => {
-          setIsEditing(false);
-          setSelectedArticle(null);
-        }}
-        onSave={handleSave}
-      />
-    );
-  }
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
@@ -208,7 +154,7 @@ const Articles: React.FC = () => {
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => navigate('/articles/new')}
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center space-x-2 transition-all shadow-lg shadow-indigo-500/20"
           >
             <Plus className="w-5 h-5" />
@@ -295,7 +241,7 @@ const Articles: React.FC = () => {
           <FileText className="w-12 h-12 text-slate-600" />
           <p className="text-slate-400">No articles found</p>
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => navigate('/articles/new')}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
           >
             Create your first article
@@ -330,10 +276,7 @@ const Articles: React.FC = () => {
                       <div>
                         <p
                           className="font-medium text-white hover:text-indigo-400 cursor-pointer transition-colors line-clamp-1"
-                          onClick={() => {
-                            setSelectedArticle(article);
-                            setIsEditing(true);
-                          }}
+                          onClick={() => navigate(`/articles/${article.id}`)}
                         >
                           {article.title}
                         </p>
@@ -387,10 +330,7 @@ const Articles: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedArticle(article);
-                            setIsEditing(true);
-                          }}
+                          onClick={() => navigate(`/articles/${article.id}`)}
                           className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                         >
                           <Edit3 className="w-4 h-4" />
