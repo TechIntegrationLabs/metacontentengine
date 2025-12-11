@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, PenTool, FileText, Users, Settings as SettingsIcon, BarChart3, Flame, LogOut } from 'lucide-react';
+import { LayoutDashboard, PenTool, FileText, Users, Settings as SettingsIcon, BarChart3, Flame, LogOut, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AuthProvider, useAuth, TenantProvider, useTenant } from '@content-engine/hooks';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +11,7 @@ import ArticleEditor from './pages/ArticleEditor';
 import Contributors from './pages/Contributors';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
+import KeywordResearch from './pages/KeywordResearch';
 import { Login, Register, ForgotPassword, ResetPassword } from './pages/auth';
 
 type AuthView = 'login' | 'register' | 'forgot-password' | 'reset-password';
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/forge', label: 'Content Forge', icon: PenTool },
   { path: '/articles', label: 'Articles', icon: FileText },
+  { path: '/keywords', label: 'Keywords', icon: Search },
   { path: '/contributors', label: 'Contributors', icon: Users },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -254,6 +256,7 @@ function AuthenticatedApp({ onSignOut }: { onSignOut: () => Promise<void> }) {
             <Route path="/articles/new" element={<ArticleEditor />} />
             <Route path="/articles/:id" element={<ArticleEditor />} />
             <Route path="/contributors" element={<Contributors />} />
+            <Route path="/keywords" element={<KeywordResearch />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />

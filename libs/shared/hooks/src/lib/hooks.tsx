@@ -22,3 +22,6 @@ export type {
 } from './useContributors';
 export { useApiKeys } from './useApiKeys';
 export type { ApiProvider, ApiKeyConfig, ApiKeyStatus } from './useApiKeys';
+export { useSettings } from './useSettings';
+export type { TenantSettings } from './useSettings';
+export { useAnalytics } from './useAnalytics';

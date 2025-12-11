@@ -109,6 +109,10 @@ module.exports = {
           'scrollbar-width': 'thin',
           'scrollbar-color': 'rgba(255,255,255,0.1) transparent',
         },
+        '.custom-scrollbar': {
+          'scrollbar-width': 'thin',
+          'scrollbar-color': 'rgba(255,255,255,0.1) transparent',
+        },
       });
     },
   ],

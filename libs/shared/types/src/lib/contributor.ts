@@ -84,6 +84,26 @@ export type ContentType =
 
 export interface ContributorStats {
   contributorId: string;
+  totalArticles: number;
+  averageQualityScore: number;
+  averageWordCount: number;
+  publicationSuccessRate: number;
+  revisionRate: number;
+  topTopics: string[];
+  lastArticleDate: string | null;
+  performanceScore: number;
+  rank?: number;
+}
+
+export interface ContributorPerformance {
+  period: 'week' | 'month' | 'quarter' | 'all';
+  articlesPublished: number;
+  averageQuality: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface ContributorPeriodStats {
+  contributorId: string;
   period: 'week' | 'month' | 'quarter' | 'year' | 'all_time';
 
   articlesPublished: number;

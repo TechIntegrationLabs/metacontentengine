@@ -1,6 +1,7 @@
 /**
  * UI Component Types
  */
+import type { ReactNode } from 'react';
 
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
@@ -76,10 +77,11 @@ export interface TableColumn<T> {
   label: string;
   sortable?: boolean;
   width?: string;
-  render?: (value: unknown, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => ReactNode;
 }
 
-export interface Pagination {
+// Note: Use Pagination from api.ts for the full interface with hasNext/hasPrev
+export interface UiPaginationState {
   page: number;
   pageSize: number;
   total: number;

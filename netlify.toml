@@ -89,6 +89,24 @@
   package = "@netlify/plugin-lighthouse"
 
 # ============================================
+# PCC (POLYNESIAN CULTURAL CENTER) CLIENT
+# ============================================
+# To deploy the PCC client, create a separate Netlify site with:
+#   - Build command: npx nx build pcc --configuration=production
+#   - Publish directory: dist/apps/pcc
+#   - Base directory: content-engine/
+#
+# Or use branch-based deployment with this context:
+
+[context.client-pcc]
+  command = "npx nx build pcc --configuration=production"
+  publish = "dist/apps/pcc"
+
+  [context.client-pcc.environment]
+    VITE_ENVIRONMENT = "production"
+    VITE_APP_NAME = "Polynesian Cultural Center"
+
+# ============================================
 # MULTI-CLIENT DEPLOYMENT NOTES
 # ============================================
 # To deploy a different client app, either:
@@ -99,12 +117,12 @@
 #
 # 2. Or use branch-based deployments:
 #    - main branch -> geteducated (default)
-#    - client-acme branch -> acme client
+#    - client-pcc branch -> PCC client
 #
 #    Add context block:
-#    [context.client-acme]
-#      command = "npx nx build acme --configuration=production"
-#      publish = "dist/apps/acme"
+#    [context.client-pcc]
+#      command = "npx nx build pcc --configuration=production"
+#      publish = "dist/apps/pcc"
 #
 # 3. Or use Netlify's monorepo support with separate netlify.toml
 #    per app in apps/<client>/netlify.toml

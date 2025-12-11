@@ -14,10 +14,13 @@ import {
   Trash2,
   ExternalLink,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useArticles, Article, ArticleStatus } from '@content-engine/hooks';
+import { KanbanBoard } from '@content-engine/ui';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   idea: {
@@ -81,6 +84,7 @@ const Articles: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   const {
     articles,
@@ -122,6 +126,23 @@ const Articles: React.FC = () => {
     }
   };
 
+  const handleStatusChange = async (articleId: string, newStatus: ArticleStatus) => {
+    try {
+      await updateArticle({ id: articleId, status: newStatus });
+    } catch (err) {
+      console.error('Failed to update article status:', err);
+      throw err;
+    }
+  };
+
+  const handleArticleClick = (article: Article) => {
+    navigate(`/articles/${article.id}`);
+  };
+
+  const handleAddArticle = (status: string) => {
+    navigate('/articles/new', { state: { initialStatus: status } });
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
@@ -146,6 +167,31 @@ const Articles: React.FC = () => {
           <p className="text-slate-500 mt-1">Manage and organize your content library</p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-void-900/50 border border-white/5 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="List View"
+            >
+              <List className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'board'
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Board View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+          </div>
           <button
             onClick={() => refetch()}
             disabled={isLoading}
@@ -228,142 +274,159 @@ const Articles: React.FC = () => {
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-        </div>
+      {/* Board View */}
+      {viewMode === 'board' && (
+        <KanbanBoard
+          articles={articles}
+          isLoading={isLoading}
+          onArticleClick={handleArticleClick}
+          onStatusChange={handleStatusChange}
+          onAddArticle={handleAddArticle}
+          onRefresh={refetch}
+        />
       )}
 
-      {/* Empty State */}
-      {!isLoading && articles.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <FileText className="w-12 h-12 text-slate-600" />
-          <p className="text-slate-400">No articles found</p>
-          <button
-            onClick={() => navigate('/articles/new')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
-          >
-            Create your first article
-          </button>
-        </div>
-      )}
+      {/* List View */}
+      {viewMode === 'list' && (
+        <>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+            </div>
+          )}
 
-      {/* Articles Table */}
-      {!isLoading && articles.length > 0 && (
-        <div className="bg-void-900/50 rounded-2xl border border-white/5 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Article</th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Contributor</th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Status</th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Quality</th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Words</th>
-                <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {articles.map((article) => {
-                const status = statusConfig[article.status] || statusConfig.idea;
-                const StatusIcon = status.icon;
-                const contributorName = article.contributor?.display_name || article.contributor?.name || 'Unknown';
-                const contributorInitials = contributorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+          {/* Empty State */}
+          {!isLoading && articles.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <FileText className="w-12 h-12 text-slate-600" />
+              <p className="text-slate-400">No articles found</p>
+              <button
+                onClick={() => navigate('/articles/new')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+              >
+                Create your first article
+              </button>
+            </div>
+          )}
 
-                return (
-                  <tr key={article.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p
-                          className="font-medium text-white hover:text-indigo-400 cursor-pointer transition-colors line-clamp-1"
-                          onClick={() => navigate(`/articles/${article.id}`)}
-                        >
-                          {article.title}
-                        </p>
-                        <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
-                          {article.primary_keyword && (
-                            <span className="px-2 py-0.5 rounded-full bg-white/5">{article.primary_keyword}</span>
-                          )}
-                          <span>{article.reading_time || 0} min read</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
-                          {contributorInitials}
-                        </div>
-                        <span className="text-sm text-slate-300">{contributorName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full ${status.bg}`}>
-                        <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
-                        <span className={`text-xs font-medium ${status.color}`}>{status.label}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {article.quality_score ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                article.quality_score >= 90 ? 'bg-emerald-500' :
-                                article.quality_score >= 80 ? 'bg-indigo-500' :
-                                article.quality_score >= 70 ? 'bg-amber-500' :
-                                'bg-red-500'
-                              }`}
-                              style={{ width: `${article.quality_score}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium text-slate-400">{article.quality_score}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-slate-600">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">
-                        {article.word_count?.toLocaleString() || 0}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => navigate(`/articles/${article.id}`)}
-                          className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        {article.status === 'published' && article.published_url && (
-                          <a
-                            href={article.published_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                        <button
-                          onClick={() => handleDelete(article.id)}
-                          disabled={isDeleting === article.id}
-                          className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
-                        >
-                          {isDeleting === article.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
+          {/* Articles Table */}
+          {!isLoading && articles.length > 0 && (
+            <div className="bg-void-900/50 rounded-2xl border border-white/5 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Article</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Contributor</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Status</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Quality</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Words</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Actions</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {articles.map((article) => {
+                    const status = statusConfig[article.status] || statusConfig.idea;
+                    const StatusIcon = status.icon;
+                    const contributorName = article.contributor?.display_name || article.contributor?.name || 'Unknown';
+                    const contributorInitials = contributorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+                    return (
+                      <tr key={article.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p
+                              className="font-medium text-white hover:text-indigo-400 cursor-pointer transition-colors line-clamp-1"
+                              onClick={() => navigate(`/articles/${article.id}`)}
+                            >
+                              {article.title}
+                            </p>
+                            <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
+                              {article.primary_keyword && (
+                                <span className="px-2 py-0.5 rounded-full bg-white/5">{article.primary_keyword}</span>
+                              )}
+                              <span>{article.reading_time || 0} min read</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
+                              {contributorInitials}
+                            </div>
+                            <span className="text-sm text-slate-300">{contributorName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full ${status.bg}`}>
+                            <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
+                            <span className={`text-xs font-medium ${status.color}`}>{status.label}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {article.quality_score ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    article.quality_score >= 90 ? 'bg-emerald-500' :
+                                    article.quality_score >= 80 ? 'bg-indigo-500' :
+                                    article.quality_score >= 70 ? 'bg-amber-500' :
+                                    'bg-red-500'
+                                  }`}
+                                  style={{ width: `${article.quality_score}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium text-slate-400">{article.quality_score}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-600">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-slate-400">
+                            {article.word_count?.toLocaleString() || 0}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={() => navigate(`/articles/${article.id}`)}
+                              className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            {article.status === 'published' && article.published_url && (
+                              <a
+                                href={article.published_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                            <button
+                              onClick={() => handleDelete(article.id)}
+                              disabled={isDeleting === article.id}
+                              className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                            >
+                              {isDeleting === article.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

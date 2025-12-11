@@ -24,7 +24,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useApiKeys, ApiProvider, useTenant } from '@content-engine/hooks';
+import { useApiKeys, ApiProvider, useTenant, useSettings } from '@content-engine/hooks';
 
 interface SettingsTab {
   id: string;
@@ -35,6 +35,7 @@ interface SettingsTab {
 const tabs: SettingsTab[] = [
   { id: 'general', label: 'General', icon: SettingsIcon },
   { id: 'brand', label: 'Brand Profile', icon: Building2 },
+  { id: 'publishing', label: 'Publishing & Quality', icon: Globe },
   { id: 'api', label: 'API Keys', icon: Key },
   { id: 'integrations', label: 'Integrations', icon: Zap },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -75,6 +76,7 @@ const Settings: React.FC = () => {
       <div className="flex-1 space-y-6">
         {activeTab === 'general' && <GeneralSettings />}
         {activeTab === 'brand' && <BrandSettings />}
+        {activeTab === 'publishing' && <PublishingSettings />}
         {activeTab === 'api' && <ApiSettings />}
         {activeTab === 'integrations' && <IntegrationSettings />}
         {activeTab === 'notifications' && <NotificationSettings />}
@@ -87,6 +89,46 @@ const Settings: React.FC = () => {
 
 const GeneralSettings: React.FC = () => {
   const { tenant } = useTenant();
+  const { settings, updateSetting, bulkUpdate, isLoading } = useSettings({ supabase });
+  const [isSaving, setIsSaving] = useState(false);
+  const [localSettings, setLocalSettings] = useState({
+    theme: settings.theme,
+    defaultView: settings.defaultView,
+    articlesPerPage: settings.articlesPerPage,
+    defaultAiProvider: settings.defaultAiProvider,
+  });
+  const [success, setSuccess] = useState(false);
+
+  // Sync local state with loaded settings
+  React.useEffect(() => {
+    setLocalSettings({
+      theme: settings.theme,
+      defaultView: settings.defaultView,
+      articlesPerPage: settings.articlesPerPage,
+      defaultAiProvider: settings.defaultAiProvider,
+    });
+  }, [settings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await bulkUpdate(localSettings);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -94,6 +136,13 @@ const GeneralSettings: React.FC = () => {
         <h2 className="text-2xl font-display font-bold text-white mb-2">General Settings</h2>
         <p className="text-slate-500">Configure your workspace preferences</p>
       </div>
+
+      {success && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center space-x-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <span className="text-emerald-400">Settings saved successfully</span>
+        </div>
+      )}
 
       <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-6">
         <div>
@@ -106,33 +155,292 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white mb-2">Default Language</label>
-          <select className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            <option value="en">English (US)</option>
-            <option value="en-gb">English (UK)</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
+          <label className="block text-sm font-medium text-white mb-2">Theme</label>
+          <select
+            value={localSettings.theme}
+            onChange={(e) => setLocalSettings({ ...localSettings, theme: e.target.value as 'dark' | 'light' })}
+            className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white mb-2">Timezone</label>
-          <select className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            <option value="america/new_york">Eastern Time (ET)</option>
-            <option value="america/chicago">Central Time (CT)</option>
-            <option value="america/denver">Mountain Time (MT)</option>
-            <option value="america/los_angeles">Pacific Time (PT)</option>
-            <option value="utc">UTC</option>
+          <label className="block text-sm font-medium text-white mb-2">Default View</label>
+          <select
+            value={localSettings.defaultView}
+            onChange={(e) => setLocalSettings({ ...localSettings, defaultView: e.target.value as 'kanban' | 'list' })}
+            className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            <option value="kanban">Kanban Board</option>
+            <option value="list">List View</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">Articles Per Page</label>
+          <input
+            type="number"
+            min="10"
+            max="100"
+            step="5"
+            value={localSettings.articlesPerPage}
+            onChange={(e) => setLocalSettings({ ...localSettings, articlesPerPage: parseInt(e.target.value) })}
+            className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">Default AI Provider</label>
+          <select
+            value={localSettings.defaultAiProvider}
+            onChange={(e) => setLocalSettings({ ...localSettings, defaultAiProvider: e.target.value as 'grok' | 'claude' | 'stealthgpt' })}
+            className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            <option value="grok">Grok (xAI)</option>
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="stealthgpt">StealthGPT</option>
           </select>
         </div>
 
         <div className="pt-4 border-t border-white/5">
-          <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center space-x-2 transition-all">
-            <Save className="w-4 h-4" />
-            <span>Save Changes</span>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center space-x-2 transition-all disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const PublishingSettings: React.FC = () => {
+  const { settings, bulkUpdate, isLoading } = useSettings({ supabase });
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [localSettings, setLocalSettings] = useState({
+    autoPublishEnabled: settings.autoPublishEnabled,
+    autoPublishDelay: settings.autoPublishDelay,
+    defaultPublishStatus: settings.defaultPublishStatus,
+    minimumQualityScore: settings.minimumQualityScore,
+    autoRejectBelowScore: settings.autoRejectBelowScore,
+    requireHumanReview: settings.requireHumanReview,
+    defaultWordCount: settings.defaultWordCount,
+  });
+
+  // Sync local state with loaded settings
+  React.useEffect(() => {
+    setLocalSettings({
+      autoPublishEnabled: settings.autoPublishEnabled,
+      autoPublishDelay: settings.autoPublishDelay,
+      defaultPublishStatus: settings.defaultPublishStatus,
+      minimumQualityScore: settings.minimumQualityScore,
+      autoRejectBelowScore: settings.autoRejectBelowScore,
+      requireHumanReview: settings.requireHumanReview,
+      defaultWordCount: settings.defaultWordCount,
+    });
+  }, [settings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await bulkUpdate(localSettings);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-white mb-2">Publishing & Quality</h2>
+        <p className="text-slate-500">Configure content publishing and quality control settings</p>
+      </div>
+
+      {success && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center space-x-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <span className="text-emerald-400">Settings saved successfully</span>
+        </div>
+      )}
+
+      {/* Publishing Settings */}
+      <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-white/5">
+          <div>
+            <h3 className="font-medium text-white">Auto-Publish</h3>
+            <p className="text-sm text-slate-500">Automatically publish content after passing QA</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localSettings.autoPublishEnabled}
+              onChange={(e) => setLocalSettings({ ...localSettings, autoPublishEnabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+          </label>
+        </div>
+
+        {localSettings.autoPublishEnabled && (
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Auto-Publish Delay (minutes)</label>
+            <input
+              type="number"
+              min="0"
+              max="1440"
+              step="5"
+              value={localSettings.autoPublishDelay}
+              onChange={(e) => setLocalSettings({ ...localSettings, autoPublishDelay: parseInt(e.target.value) })}
+              className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            />
+            <p className="text-xs text-slate-500 mt-1">Delay before publishing after QA approval</p>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">Default Publish Status</label>
+          <select
+            value={localSettings.defaultPublishStatus}
+            onChange={(e) => setLocalSettings({ ...localSettings, defaultPublishStatus: e.target.value as 'draft' | 'pending' | 'publish' })}
+            className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            <option value="draft">Draft</option>
+            <option value="pending">Pending Review</option>
+            <option value="publish">Publish</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Quality Settings */}
+      <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-6">
+        <div>
+          <h3 className="font-medium text-white mb-4">Quality Control</h3>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Minimum Quality Score: {localSettings.minimumQualityScore}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={localSettings.minimumQualityScore}
+            onChange={(e) => setLocalSettings({ ...localSettings, minimumQualityScore: parseInt(e.target.value) })}
+            className="w-full accent-indigo-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">Minimum score required to pass quality checks</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Auto-Reject Below Score: {localSettings.autoRejectBelowScore}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={localSettings.autoRejectBelowScore}
+            onChange={(e) => setLocalSettings({ ...localSettings, autoRejectBelowScore: parseInt(e.target.value) })}
+            className="w-full accent-red-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">Automatically reject content below this score</p>
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+          <div>
+            <p className="font-medium text-white">Require Human Review</p>
+            <p className="text-sm text-slate-500">All content must be manually reviewed before publishing</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localSettings.requireHumanReview}
+              onChange={(e) => setLocalSettings({ ...localSettings, requireHumanReview: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+          </label>
+        </div>
+      </div>
+
+      {/* Generation Settings */}
+      <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-6">
+        <div>
+          <h3 className="font-medium text-white mb-4">Content Generation</h3>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Minimum Word Count</label>
+            <input
+              type="number"
+              min="300"
+              max="5000"
+              step="100"
+              value={localSettings.defaultWordCount.min}
+              onChange={(e) => setLocalSettings({
+                ...localSettings,
+                defaultWordCount: { ...localSettings.defaultWordCount, min: parseInt(e.target.value) }
+              })}
+              className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Maximum Word Count</label>
+            <input
+              type="number"
+              min="500"
+              max="10000"
+              step="100"
+              value={localSettings.defaultWordCount.max}
+              onChange={(e) => setLocalSettings({
+                ...localSettings,
+                defaultWordCount: { ...localSettings.defaultWordCount, max: parseInt(e.target.value) }
+              })}
+              className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-white/5">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center space-x-2 transition-all disabled:opacity-50"
+        >
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+        </button>
       </div>
     </div>
   );
@@ -162,7 +470,7 @@ const BrandSettings: React.FC = () => {
             <label className="block text-sm font-medium text-white mb-2">Website URL</label>
             <input
               type="url"
-              defaultValue={tenant?.domain || 'https://geteducated.com'}
+              defaultValue={tenant?.primaryDomain || 'https://geteducated.com'}
               className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
           </div>
@@ -172,7 +480,7 @@ const BrandSettings: React.FC = () => {
           <label className="block text-sm font-medium text-white mb-2">Industry</label>
           <input
             type="text"
-            defaultValue={tenant?.settings?.industry || 'Education Technology'}
+            defaultValue="Education Technology"
             className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           />
         </div>
@@ -180,7 +488,7 @@ const BrandSettings: React.FC = () => {
         <div>
           <label className="block text-sm font-medium text-white mb-2">Target Audience</label>
           <textarea
-            defaultValue={tenant?.settings?.target_audience || 'Students, educators, and lifelong learners seeking quality educational resources and career guidance'}
+            defaultValue="Students, educators, and lifelong learners seeking quality educational resources and career guidance"
             className="w-full bg-void-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 h-24 resize-none"
           />
         </div>
@@ -193,7 +501,7 @@ const BrandSettings: React.FC = () => {
               type="range"
               min="1"
               max="10"
-              defaultValue={tenant?.settings?.formality_scale || 7}
+              defaultValue={7}
               className="flex-1 accent-indigo-500"
             />
             <span className="text-sm text-slate-500">Casual</span>
@@ -509,34 +817,91 @@ const IntegrationSettings: React.FC = () => {
   );
 };
 
-const NotificationSettings: React.FC = () => (
-  <div className="space-y-6">
-    <div>
-      <h2 className="text-2xl font-display font-bold text-white mb-2">Notifications</h2>
-      <p className="text-slate-500">Control when and how you receive notifications</p>
-    </div>
+const NotificationSettings: React.FC = () => {
+  const { settings, updateSetting, isLoading } = useSettings({ supabase });
+  const [isSaving, setIsSaving] = useState(false);
 
-    <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-4">
-      {[
-        { label: 'Content generated', desc: 'When new content finishes generation' },
-        { label: 'Quality alerts', desc: 'When content falls below quality threshold' },
-        { label: 'Publishing reminders', desc: 'Scheduled content publishing notifications' },
-        { label: 'Team activity', desc: 'When team members make changes' },
-      ].map((item, i) => (
-        <div key={i} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+  const handleToggle = async (key: keyof typeof settings, value: boolean) => {
+    setIsSaving(true);
+    try {
+      await updateSetting(key, value);
+    } catch (err) {
+      console.error('Failed to update notification setting:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-white mb-2">Notifications</h2>
+        <p className="text-slate-500">Control when and how you receive notifications</p>
+      </div>
+
+      <div className="bg-void-900/50 rounded-2xl border border-white/5 p-6 space-y-4">
+        <div className="flex items-center justify-between py-3 border-b border-white/5">
           <div>
-            <p className="font-medium text-white">{item.label}</p>
-            <p className="text-sm text-slate-500">{item.desc}</p>
+            <p className="font-medium text-white">Email on Publish</p>
+            <p className="text-sm text-slate-500">Get notified when content is published</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" defaultChecked className="sr-only peer" />
-            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+            <input
+              type="checkbox"
+              checked={settings.emailOnPublish}
+              onChange={(e) => handleToggle('emailOnPublish', e.target.checked)}
+              disabled={isSaving}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50"></div>
           </label>
         </div>
-      ))}
+
+        <div className="flex items-center justify-between py-3 border-b border-white/5">
+          <div>
+            <p className="font-medium text-white">Email on QA Failure</p>
+            <p className="text-sm text-slate-500">Get alerted when content fails quality checks</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.emailOnQaFail}
+              onChange={(e) => handleToggle('emailOnQaFail', e.target.checked)}
+              disabled={isSaving}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50"></div>
+          </label>
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+          <div>
+            <p className="font-medium text-white">Webhook Notifications</p>
+            <p className="text-sm text-slate-500">Send webhook events for content lifecycle</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.webhookNotifications}
+              onChange={(e) => handleToggle('webhookNotifications', e.target.checked)}
+              disabled={isSaving}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-disabled:opacity-50"></div>
+          </label>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SecuritySettings: React.FC = () => (
   <div className="space-y-6">
